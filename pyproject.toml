@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "refactor-stats-maker"
-version = "0.1.1"
+version = "0.2.0"
 description = ""
 authors = ["Tiago Pereira <tiago.pereira@infraspeak.com>"]
 readme = "README.md"
@@ -11,6 +11,7 @@ python = "^3.11"
 codeowners = "^0.6.0"
 ripgrepy = "^2.0.0"
 plotext = "^5.2.8"
+pyperclip = "^1.8.2"
 
 [build-system]
 requires = ["poetry-core"]

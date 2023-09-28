@@ -4,6 +4,7 @@ from ripgrepy import Ripgrepy
 import sys
 import re
 import plotext as plt
+import pyperclip
 
 # BASELINE for STATS
 team_baselines = {
@@ -134,6 +135,9 @@ def run():
 
     repo_path = None
     verbose = False
+    copy_to_clipboard = False
+    format_for_gitlab = False
+    args = []
 
     match sys.argv:
         case [_]:
@@ -141,15 +145,19 @@ def run():
             exit(1)
         case [_, path]:
             repo_path = path
-        case [_, path, '-v']:
+        case [_, path, *args]:
             repo_path = path
-            verbose = True
+            args = args
 
-    srcpath = str(Path(f'{repo_path}/src').expanduser())
+    verbose = '-v' in args
+    copy_to_clipboard = '--copy' in args
+    format_for_gitlab = '--gitlab' in args
+
+    src_path = str(Path(f'{repo_path}/src').expanduser())
 
     codeowners_file = Path(f'{repo_path}/CODEOWNERS').expanduser()
 
-    rg = Ripgrepy("expanded: [',\\[].*", srcpath)
+    rg = Ripgrepy("expanded: [',\\[].*", src_path)
 
     files_to_refactor = rg.files_with_matches().run().as_string
 
@@ -157,7 +165,7 @@ def run():
 
     # We're ignoring test files because they are most likely testing API calls
     # whenever a 'expanded: ' match is found
-    file_paths = [f.replace(srcpath+'/', '')
+    file_paths = [f.replace(src_path+'/', '')
                   for f in lines
                   if f != ''
                   and not f.endswith('spec.ts')]
@@ -193,6 +201,9 @@ def run():
 
     baseline_file_counts = {k: len(v) for k, v in team_baselines.items()}
     baseline_file_names = {k: v for k, v in team_baselines.items()}
+    file_status_list = {}
+
+    report_lines = []
 
     for team, files_to_fix in sorted(team_assignments.items()):
         pending = len(files_to_fix)
@@ -210,26 +221,80 @@ def run():
 
         percentages.append(pct_done)
 
-        if verbose:
-            print(f'{team}')
-            print(f'  {pct_done}% DONE ({fixed_string})')
+        file_items = [[file, file in files_to_fix]
+                      for file in sorted(baseline_file_names.get(team, ''))]
 
-            file_items = [[file, file in files_to_fix]
-                          for file in sorted(baseline_file_names.get(team, ''))]
+        if verbose:
+            percent_done_by_team = f'{pct_done}% DONE ({fixed_string})'
+            report_lines.append(f'{team} {percent_done_by_team}')
+
+            tab_character = '  '
+
+            # if format_for_gitlab:
+            #     tab_character = '&emsp;'
 
             for file_item in sorted(file_items):
+                file_name = file_item[0]
                 if file_item[1]:
-                    print(f'  ❌ {file_item[0]}')
+                    report_lines.append(f'{tab_character}❌ {file_name}')
+                    file_status_list[file_name] = False
                 else:
-                    print(f'  ✅ {file_item[0]}')
+                    report_lines.append(f'{tab_character}✅ {file_name}')
+                    file_status_list[file_name] = True
+        else:
+            for file_item in sorted(file_items):
+                file_name = file_item[0]
+                if file_item[1]:
+                    file_status_list[file_name] = False
+                else:
+                    file_status_list[file_name] = True
 
-    # PRETTY CHART!
+    # REPORT TEXT
+
+    report_text = "\n".join(report_lines)
+
+    if format_for_gitlab:
+        report_text = f"""
+<p>
+<details>
+<summary>Click for detailed file list</summary>
+<pre>
+{report_text}
+</pre>
+</details>
+</p>
+        """
+
+    # OVERALL STATS
+
+    fixed_files_count = len(
+        [f for f in file_status_list.values() if f is True])
+    total_file_count = len(list(file_status_list.items()))
+
+    percent_done = (fixed_files_count / total_file_count)*100
+
+    title = f'OVERALL REFACTORING STATUS {percent_done:.2f}%'
+
+    # BY TEAM STATS
+
+    plt.simple_bar(team_names, percentages, width=75,
+                   title=title)
+    plt.show()
+
+    # PRINT FILE LIST
 
     print()
 
-    plt.simple_bar(team_names, percentages, width=75,
-                   title='Refactoring status %')
-    plt.show()
+    print(report_text)
+
+    if (copy_to_clipboard):
+        if format_for_gitlab:
+            # strip ANSI color escape codes from string before copying to clipboard
+            text_plot = str(f'<pre>{plt.uncolorize(plt.build())}</pre>')
+        else:
+            text_plot = str(f'{plt.uncolorize(plt.build())}\n')
+        report_text = text_plot + report_text
+        pyperclip.copy(report_text)
 
 
 if __name__ == '__main__':
