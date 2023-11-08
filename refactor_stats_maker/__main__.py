@@ -1,13 +1,15 @@
+import sys
 from pathlib import Path
+from typing import List
+
 from codeowners import CodeOwners
 from ripgrepy import Ripgrepy
-import sys
-import re
-import plotext as plt
-import pyperclip
+
+import repository_helpers
+import stats_helpers
 
 # BASELINE for STATS
-team_baselines = {
+team_assignement_baselines = {
     "@infraspeak/buy-and-sell/bs1-asgard/frontend": [
         "components/side-dialog/email/sale/SideDialogEmailSale.store.ts",
         "components/info/purchase/components/documents/InfoPurchaseDocuments.store.ts",
@@ -18,7 +20,7 @@ team_baselines = {
         "components/info/client/custom-sale-prices/InfoClientCustomSalePrices.store.ts",
         "components/side-dialog/email/quote/SideDialogEmailQuote.store.ts",
         "components/history/quote/HistoryQuote.store.ts",
-        "components/history/sale/HistorySale.store.ts"
+        "components/history/sale/HistorySale.store.ts",
     ],
     "@infraspeak/cross-platform/cp1-kapteyn/frontend": [
         "components/account/document/AccountDocument.store.ts"
@@ -27,7 +29,8 @@ team_baselines = {
         "components/account/document/AccountDocument.store.ts"
     ],
     "@infraspeak/maintenance-core/mc1-prometheus-finne-anni/frontend": [
-        "views/dashboard/components/widget-device-location/ScreenDashboardWidgetDeviceLocation.vue",
+        "views/dashboard/components/widget-device-location"
+        "/ScreenDashboardWidgetDeviceLocation.vue",
         "views/housekeeper/components/dashboard/ScreenHousekeeperDashboard.store.ts",
         "components/side-dialog/select-asset/SideDialogSelectAsset.store.ts",
         "models/failure-element/FailureElement.model.ts",
@@ -36,42 +39,61 @@ team_baselines = {
         "components/info/failure/components/schedules/InfoFailureSchedules.store.ts",
         "components/info/asset/components/open-failures/InfoAssetOpenFailures.store.ts",
         "components/info/failure/components/messages/InfoFailureMessages.store.ts",
-        "components/info/asset/components/economic-analysis/InfoAssetEconomicAnalysis.store.ts",
-        "components/info/asset/components/characteristics/InfoAssetCharacteristics.store.ts",
+        "components/info/asset/components/economic-analysis/InfoAssetEconomicAnalysis"
+        ".store.ts",
+        "components/info/asset/components/characteristics/InfoAssetCharacteristics"
+        ".store.ts",
         "components/info/failure/components/requests/InfoFailureRequests.store.ts",
         "components/info/asset/components/summary/InfoAssetSummary.store.ts",
         "components/info/asset/components/planned/InfoAssetPlanned.store.ts",
-        "components/info/failure/components/attachments/InfoFailureAttachments.store.ts",
+        "components/info/failure/components/attachments/InfoFailureAttachments.store"
+        ".ts",
         "components/info/failure/components/costs/InfoFailureCosts.store.ts",
         "components/info/failure/components/stats/InfoFailureStats.store.ts",
         "components/info/failure/components/summary/InfoFailureSummary.store.ts",
-        "components/info/scheduled-work/components/attachments/InfoScheduledWorkAttachments.store.ts",
-        "components/info/scheduled-work/components/costs/InfoScheduledWorkCosts.store.ts",
-        "components/info/scheduled-work/components/requests/InfoScheduledWorkRequests.store.ts",
-        "components/info/scheduled-work/components/gatekeeper/InfoScheduledWorkGatekeeper.store.ts",
-        "components/info/scheduled-work/components/summary/InfoScheduledWorkSummary.store.ts",
-        "components/info/scheduled-work/components/audit/InfoScheduledWorkAudit.store.ts",
-        "components/info/scheduled-work/components/failures/InfoScheduledWorkFailures.store.ts",
-        "components/info/scheduled-work/components/planner-activity/InfoScheduledWorkPlannerActivity.store.ts",
+        "components/info/scheduled-work/components/attachments"
+        "/InfoScheduledWorkAttachments.store.ts",
+        "components/info/scheduled-work/components/costs/InfoScheduledWorkCosts.store"
+        ".ts",
+        "components/info/scheduled-work/components/requests/InfoScheduledWorkRequests"
+        ".store.ts",
+        "components/info/scheduled-work/components/gatekeeper"
+        "/InfoScheduledWorkGatekeeper.store.ts",
+        "components/info/scheduled-work/components/summary/InfoScheduledWorkSummary"
+        ".store.ts",
+        "components/info/scheduled-work/components/audit/InfoScheduledWorkAudit.store"
+        ".ts",
+        "components/info/scheduled-work/components/failures/InfoScheduledWorkFailures"
+        ".store.ts",
+        "components/info/scheduled-work/components/planner-activity"
+        "/InfoScheduledWorkPlannerActivity.store.ts",
         "components/history/asset/HistoryAsset.store.ts",
         "components/history/scheduled-work/HistoryScheduledWork.store.ts",
         "components/history/failure/HistoryFailure.vue",
-        "components/side-dialog/gatekeeper-checklist/SideDialogGatekeeperChecklist.store.ts",
-        "components/info/scheduled-work/components/tasks/InfoScheduledWorkTasks.store.ts",
-        "components/side-dialog/select-intervention/SideDialogSelectIntervention.store.ts",
+        "components/side-dialog/gatekeeper-checklist/SideDialogGatekeeperChecklist"
+        ".store.ts",
+        "components/info/scheduled-work/components/tasks/InfoScheduledWorkTasks.store"
+        ".ts",
+        "components/side-dialog/select-intervention/SideDialogSelectIntervention"
+        ".store.ts",
         "components/side-dialog/report-failure/SideDialogReportFailure.store.ts",
         "components/side-dialog/failure-asset/SideDialogFailureAsset.store.ts",
-        "components/side-dialog/building-utility-meter/SideDialogBuildingUtilityMeter.store.ts",
-        "components/side-dialog/asset-characteristics/SideDialogAssetCharacteristics.store.ts",
+        "components/side-dialog/building-utility-meter/SideDialogBuildingUtilityMeter"
+        ".store.ts",
+        "components/side-dialog/asset-characteristics/SideDialogAssetCharacteristics"
+        ".store.ts",
         "components/side-dialog/add-asset/SideDialogAddAsset.store.ts",
-        "components/card/element-scheduled-work-task/CardElementScheduledWorkTask.store.ts",
+        "components/card/element-scheduled-work-task/CardElementScheduledWorkTask"
+        ".store.ts",
         "components/card/asset-housekeeper/CardAssetHousekeeper.store.ts",
-        "components/action-bar/scheduled-work-mixin/ActionBarScheduledWorkMixin.store.ts",
+        "components/action-bar/scheduled-work-mixin/ActionBarScheduledWorkMixin.store"
+        ".ts",
         "components/table/assets/TableAssets.store.ts",
-        "components/select/building/SelectBuilding.vue"
+        "components/select/building/SelectBuilding.vue",
     ],
     "@infraspeak/maintenance-core/mc2-starbug/frontend": [
-        "views/dashboard/components/widget-device-location/ScreenDashboardWidgetDeviceLocation.vue",
+        "views/dashboard/components/widget-device-location"
+        "/ScreenDashboardWidgetDeviceLocation.vue",
         "views/housekeeper/components/dashboard/ScreenHousekeeperDashboard.store.ts",
         "components/side-dialog/select-asset/SideDialogSelectAsset.store.ts",
         "models/failure-element/FailureElement.model.ts",
@@ -80,43 +102,59 @@ team_baselines = {
         "components/info/failure/components/schedules/InfoFailureSchedules.store.ts",
         "components/info/asset/components/open-failures/InfoAssetOpenFailures.store.ts",
         "components/info/failure/components/messages/InfoFailureMessages.store.ts",
-        "components/info/asset/components/economic-analysis/InfoAssetEconomicAnalysis.store.ts",
-        "components/info/asset/components/characteristics/InfoAssetCharacteristics.store.ts",
+        "components/info/asset/components/economic-analysis/InfoAssetEconomicAnalysis"
+        ".store.ts",
+        "components/info/asset/components/characteristics/InfoAssetCharacteristics"
+        ".store.ts",
         "components/info/failure/components/requests/InfoFailureRequests.store.ts",
         "components/info/asset/components/summary/InfoAssetSummary.store.ts",
         "components/info/asset/components/planned/InfoAssetPlanned.store.ts",
-        "components/info/failure/components/attachments/InfoFailureAttachments.store.ts",
+        "components/info/failure/components/attachments/InfoFailureAttachments.store"
+        ".ts",
         "components/info/failure/components/costs/InfoFailureCosts.store.ts",
         "components/info/failure/components/stats/InfoFailureStats.store.ts",
         "components/info/failure/components/summary/InfoFailureSummary.store.ts",
-        "components/info/scheduled-work/components/attachments/InfoScheduledWorkAttachments.store.ts",
-        "components/info/scheduled-work/components/costs/InfoScheduledWorkCosts.store.ts",
-        "components/info/scheduled-work/components/requests/InfoScheduledWorkRequests.store.ts",
-        "components/info/scheduled-work/components/gatekeeper/InfoScheduledWorkGatekeeper.store.ts",
-        "components/info/scheduled-work/components/summary/InfoScheduledWorkSummary.store.ts",
-        "components/info/scheduled-work/components/audit/InfoScheduledWorkAudit.store.ts",
-        "components/info/scheduled-work/components/failures/InfoScheduledWorkFailures.store.ts",
-        "components/info/scheduled-work/components/planner-activity/InfoScheduledWorkPlannerActivity.store.ts",
+        "components/info/scheduled-work/components/attachments"
+        "/InfoScheduledWorkAttachments.store.ts",
+        "components/info/scheduled-work/components/costs/InfoScheduledWorkCosts.store"
+        ".ts",
+        "components/info/scheduled-work/components/requests/InfoScheduledWorkRequests"
+        ".store.ts",
+        "components/info/scheduled-work/components/gatekeeper"
+        "/InfoScheduledWorkGatekeeper.store.ts",
+        "components/info/scheduled-work/components/summary/InfoScheduledWorkSummary"
+        ".store.ts",
+        "components/info/scheduled-work/components/audit/InfoScheduledWorkAudit.store"
+        ".ts",
+        "components/info/scheduled-work/components/failures/InfoScheduledWorkFailures"
+        ".store.ts",
+        "components/info/scheduled-work/components/planner-activity"
+        "/InfoScheduledWorkPlannerActivity.store.ts",
         "components/history/asset/HistoryAsset.store.ts",
         "components/history/scheduled-work/HistoryScheduledWork.store.ts",
         "components/history/failure/HistoryFailure.vue",
-        "components/side-dialog/gatekeeper-checklist/SideDialogGatekeeperChecklist.store.ts",
-        "components/info/scheduled-work/components/tasks/InfoScheduledWorkTasks.store.ts",
-        "components/side-dialog/select-intervention/SideDialogSelectIntervention.store.ts",
+        "components/side-dialog/gatekeeper-checklist/SideDialogGatekeeperChecklist"
+        ".store.ts",
+        "components/info/scheduled-work/components/tasks/InfoScheduledWorkTasks.store"
+        ".ts",
+        "components/side-dialog/select-intervention/SideDialogSelectIntervention"
+        ".store.ts",
         "components/side-dialog/report-failure/SideDialogReportFailure.store.ts",
         "components/side-dialog/failure-asset/SideDialogFailureAsset.store.ts",
-        "components/side-dialog/building-utility-meter/SideDialogBuildingUtilityMeter.store.ts",
-        "components/side-dialog/asset-characteristics/SideDialogAssetCharacteristics.store.ts",
+        "components/side-dialog/building-utility-meter/SideDialogBuildingUtilityMeter"
+        ".store.ts",
+        "components/side-dialog/asset-characteristics/SideDialogAssetCharacteristics"
+        ".store.ts",
         "components/side-dialog/add-asset/SideDialogAddAsset.store.ts",
-        "components/card/element-scheduled-work-task/CardElementScheduledWorkTask.store.ts",
+        "components/card/element-scheduled-work-task/CardElementScheduledWorkTask"
+        ".store.ts",
         "components/card/asset-housekeeper/CardAssetHousekeeper.store.ts",
-        "components/action-bar/scheduled-work-mixin/ActionBarScheduledWorkMixin.store.ts",
+        "components/action-bar/scheduled-work-mixin/ActionBarScheduledWorkMixin.store"
+        ".ts",
         "components/table/assets/TableAssets.store.ts",
-        "components/select/building/SelectBuilding.vue"
+        "components/select/building/SelectBuilding.vue",
     ],
-    "@pedromcosta": [
-        "store/root/Root.store.ts"
-    ],
+    "@pedromcosta": ["store/root/Root.store.ts"],
     "Orphaned files": [
         "views/utilities/ScreenUtilities.store.ts",
         "components/side-dialog/other-cost/SideDialogOtherCost.store.ts",
@@ -126,13 +164,67 @@ team_baselines = {
         "components/account/settings/AccountSettings.store.ts",
         "components/account/notifications/AccountNotifications.store.ts",
         "components/account/general/AccountGeneral.store.ts",
-        "components/select/warehouse/SelectWarehouse.vue"
-    ]
+        "components/select/warehouse/SelectWarehouse.vue",
+    ],
 }
 
 
-def run():
+def get_files_to_refactor(
+        repo_path: str, regex: str, exclude: List[str] = []
+) -> List[str]:
+    src_path = str(Path(f"{repo_path}/src").expanduser())
 
+    rg = Ripgrepy(regex, src_path)
+
+    # SEE https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#manual-filtering
+    # -globs
+    excluded_extensions_glob = ", ".join(exclude)
+    excluded_extensions_glob = f"!*.{{{excluded_extensions_glob}}}"
+
+    files_to_refactor = (
+        rg.glob(excluded_extensions_glob).files_with_matches().run().as_string
+    )
+
+    lines = files_to_refactor.split("\n")
+
+    return [f.replace(src_path + "/", "") for f in lines if f != ""]
+
+
+def get_codeowners(repo_path) -> CodeOwners:
+    # PARSE CODEOWNERS FILE
+    codeowners_file = Path(f"{repo_path}/CODEOWNERS").expanduser()
+    codeowners = None
+
+    try:
+        with codeowners_file.open() as f:
+            codeowners = CodeOwners(f.read())
+            return codeowners
+    except IOError:
+        print(
+            f"Cannot find a CODEOWNERS file "
+            f"are you sure WebCoreClient is located in {repo_path}"
+        )
+        exit(1)
+
+
+def get_team_assignments(files: List[str], codeowners: CodeOwners):
+    # ASSIGN EACH FILE TO A TEAM
+
+    team_assignments = {}
+
+    for file_to_refactor in files:
+        teams = codeowners.of("src/" + file_to_refactor)
+        teams = [t[1] for t in teams]
+        if not teams:
+            teams = ["Orphaned files"]
+        for team in teams:
+            assigned_files = team_assignments.get(team, [])
+            team_assignments[team] = assigned_files + [file_to_refactor]
+
+    return team_assignments
+
+
+def run():
     repo_path = None
     verbose = False
     copy_to_clipboard = False
@@ -141,7 +233,7 @@ def run():
 
     match sys.argv:
         case [_]:
-            print('Empty repository path')
+            print("Empty repository path")
             exit(1)
         case [_, path]:
             repo_path = path
@@ -149,153 +241,60 @@ def run():
             repo_path = path
             args = args
 
-    verbose = '-v' in args
-    copy_to_clipboard = '--copy' in args
-    format_for_gitlab = '--gitlab' in args
+    verbose = "-v" in args
+    copy_to_clipboard = "--copy" in args
+    format_for_gitlab = "--gitlab" in args
 
-    src_path = str(Path(f'{repo_path}/src').expanduser())
+    # VALIDATE THE REPOSITORY PATH
+    if repo_path is None:
+        print("Invalid repository path")
+        exit(1)
 
-    codeowners_file = Path(f'{repo_path}/CODEOWNERS').expanduser()
-
-    rg = Ripgrepy("expanded: [',\\[].*", src_path)
-
-    files_to_refactor = rg.files_with_matches().run().as_string
-
-    lines = files_to_refactor.split('\n')
+    # LOOK FOR FILES TO REFACTOR
 
     # We're ignoring test files because they are most likely testing API calls
     # whenever a 'expanded: ' match is found
-    file_paths = [f.replace(src_path+'/', '')
-                  for f in lines
-                  if f != ''
-                  and not f.endswith('spec.ts')]
+    file_paths = get_files_to_refactor(repo_path, "expanded: [',\\[].*", ["spec.ts"])
+    codeowners = get_codeowners(repo_path)
 
-    # PARSE CODEOWNERS FILE
-    codeowners = None
+    team_assignments = get_team_assignments(file_paths, codeowners)
 
-    try:
-        with codeowners_file.open() as f:
-            codeowners = CodeOwners(f.read())
-    except IOError:
-        print(f'Cannot find a CODEOWNERS file '
-              f'are you sure WebCoreClient is located in {repo_path}')
-        exit(1)
-
-    # ASSIGN EACH FILE TO A TEAM
-
-    team_assignments = {}
-
-    for file_to_refactor in file_paths:
-        teams = codeowners.of('src/'+file_to_refactor)
-        teams = [t[1] for t in teams]
-        if not teams:
-            teams = ['Orphaned files']
-        for team in teams:
-            assigned_files = team_assignments.get(team, [])
-            team_assignments[team] = assigned_files + [file_to_refactor]
-
-    # PRINT FILES AND STATS
-
-    team_names = []
-    percentages = []
-
-    baseline_file_counts = {k: len(v) for k, v in team_baselines.items()}
-    baseline_file_names = {k: v for k, v in team_baselines.items()}
-    file_status_list = {}
-
-    report_lines = []
-
-    for team, files_to_fix in sorted(team_assignments.items()):
-        pending = len(files_to_fix)
-        baseline = baseline_file_counts[team]
-        pct_done = round((1-(pending / baseline))*100, 0)
-        fixed_string = f'fixed {baseline - pending} of {baseline} files'
-
-        # Get the team name only
-        result = re.search(r"@infraspeak/.*/(.*)/.*", team)
-        if result:
-            team_name = result.group(1)
-        else:
-            team_name = team
-        team_names.append(f'{team_name} {baseline - pending}/{baseline}')
-
-        percentages.append(pct_done)
-
-        file_items = [[file, file in files_to_fix]
-                      for file in sorted(baseline_file_names.get(team, ''))]
-
-        if verbose:
-            percent_done_by_team = f'{pct_done}% DONE ({fixed_string})'
-            report_lines.append(f'{team} {percent_done_by_team}')
-
-            tab_character = '  '
-
-            # if format_for_gitlab:
-            #     tab_character = '&emsp;'
-
-            for file_item in sorted(file_items):
-                file_name = file_item[0]
-                if file_item[1]:
-                    report_lines.append(f'{tab_character}❌ {file_name}')
-                    file_status_list[file_name] = False
-                else:
-                    report_lines.append(f'{tab_character}✅ {file_name}')
-                    file_status_list[file_name] = True
-        else:
-            for file_item in sorted(file_items):
-                file_name = file_item[0]
-                if file_item[1]:
-                    file_status_list[file_name] = False
-                else:
-                    file_status_list[file_name] = True
-
-    # REPORT TEXT
-
-    report_text = "\n".join(report_lines)
-
-    if format_for_gitlab:
-        report_text = f"""
-<p>
-<details>
-<summary>Click for detailed file list</summary>
-<pre>
-{report_text}
-</pre>
-</details>
-</p>
-        """
-
-    # OVERALL STATS
-
-    fixed_files_count = len(
-        [f for f in file_status_list.values() if f is True])
-    total_file_count = len(list(file_status_list.items()))
-
-    percent_done = (fixed_files_count / total_file_count)*100
-
-    title = f'OVERALL REFACTORING STATUS {percent_done:.2f}%'
-
-    # BY TEAM STATS
-
-    plt.simple_bar(team_names, percentages, width=75,
-                   title=title)
-    plt.show()
-
-    # PRINT FILE LIST
-
-    print()
-
-    print(report_text)
-
-    if (copy_to_clipboard):
-        if format_for_gitlab:
-            # strip ANSI color escape codes from string before copying to clipboard
-            text_plot = str(f'<pre>{plt.uncolorize(plt.build())}</pre>')
-        else:
-            text_plot = str(f'{plt.uncolorize(plt.build())}\n')
-        report_text = text_plot + report_text
-        pyperclip.copy(report_text)
+    stats_helpers.display_team_assignments(
+        team_assignments,
+        team_assignement_baselines,
+        verbose,
+        format_for_gitlab,
+        copy_to_clipboard,
+    )
 
 
-if __name__ == '__main__':
-    run()
+def get_team_assignment_baseline(repo_dir, commit_hash, regex, codeowners):
+    working_dir = repository_helpers.clone_repo_at_baseline(commit_hash)
+    files = get_files_to_refactor(working_dir, regex)
+    team_assignment_baseline = get_team_assignments(files, codeowners)
+    return team_assignment_baseline
+
+
+if __name__ == "__main__":
+    # run()
+    repo_path = "~/repo/web/web-core-client"
+    commit_hash = "83dfde9d4bde87b2c14597873e1ccc1eaf8e034d"
+    regex = "import IsButton"
+    current_files = get_files_to_refactor(repo_path, regex)
+    codeowners = get_codeowners(repo_path)
+    team_assignment = get_team_assignments(current_files, codeowners)
+    team_assignement_baseline = get_team_assignment_baseline(
+        repo_path, commit_hash, regex, codeowners
+    )
+
+    print("BASELINE: ")
+    print("##############")
+    print(team_assignement_baseline)
+    print("##############")
+    print("##############")
+    print(team_assignment)
+    print("##############")
+
+    stats_helpers.display_team_assignments(
+        team_assignment, team_assignement_baseline, True
+    )

@@ -4,7 +4,7 @@ version = "0.2.0"
 description = ""
 authors = ["Tiago Pereira <tiago.pereira@infraspeak.com>"]
 readme = "README.md"
-packages = [{include = "refactor_stats_maker"}]
+packages = [{ include = "refactor_stats_maker" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -12,6 +12,14 @@ codeowners = "^0.6.0"
 ripgrepy = "^2.0.0"
 plotext = "^5.2.8"
 pyperclip = "^1.8.2"
+gitpython = "^3.1.40"
+platformdirs = "^3.11.0"
+halo = "^0.0.31"
+black = "^23.10.1"
+pytest-watch = "^4.2.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
 
 [build-system]
 requires = ["poetry-core"]
