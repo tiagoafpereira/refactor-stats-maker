@@ -3,96 +3,175 @@ from dataclasses import dataclass
 
 import plotext as plt
 import pyperclip
+from codeowners import CodeOwners
 
 
 @dataclass(order=True)
 class File:
     path: str
     fixed: bool = False
+    is_new: bool = False
 
     def name(self):
         return self.path.split("/")[-1]
+
+    def get_fixed_icon(self) -> str:
+        if self.fixed:
+            return "✅"
+        else:
+            return "❌"
+
+    def get_simple_path(self):
+        return self.path.replace('src/', '')
+
+    def to_json(self):
+        return {'name': self.name(), 'path': self.path}
+
+    def __str__(self):
+        return f'  {self.get_fixed_icon()} {self.get_simple_path()}'
+
+
+"""
+This function assumes that each filename in the codebase is unique
+
+A more robust way of doing this would be to use git to track the files between
+commits
+
+"""
+
+
+def build_file_status_list(before: list[str], after: list[str]) -> list[File]:
+    # index each file by its filename
+
+    before_files_list = index_files(before)
+    after_files_list = index_files(after)
+    index = {}
+    file_list = []
+
+    # iterate files from the oldest snapshot
+    for key, before_value in before_files_list.items():
+        after_value = after_files_list.get(key)
+        index[key] = (before_value, after_value)
+
+    # iterate files from the most recent snapshot
+    for key, after_value in after_files_list.items():
+        current_value = index.get(key)
+        if current_value:
+            current_value = (before_files_list.get(key), after_value)
+        else:
+            current_value = (None, after_value)
+        index[key] = current_value
+
+    # map each tuple in index to a File
+    for k, v in index.items():
+        file_list.append(build_file_status(v))
+
+    return file_list
+
+
+"""
+Takes a tuple of file paths and creates a File
+"""
+
+
+def build_file_status(status: tuple) -> File:
+    match status:
+        case (path, None):
+            return File(path, fixed=True)
+        case (None, path):
+            return File(path, fixed=False, is_new=True)
+        case (_, path):
+            return File(path, fixed=False)
+    raise Exception('Unable to create file from status')
+
+
+def index_files(files: list[str]) -> dict[str, str]:
+    index = {}
+    for f in files:
+        index[f.split("/")[-1]] = f
+    return index
 
 
 def get_most_recent_file(file: File, recent_files: list[File]):
     return next((f for f in recent_files if f.name() == file.name()), file)
 
 
-"""
-SHITIEST CODE EVER
-"""
+def assign_files_to_teams(files: list[File], codeowners: CodeOwners):
+    index = {}
+
+    for f in files:
+        teams = get_file_owners(f, codeowners)
+        for team in teams:
+            file_list = index.get(team, [])
+            file_list.append(f)
+            file_list = sorted(file_list, key=lambda x: x.path)
+            index[team] = file_list
+
+    return index
 
 
-def build_report_data(
-        assignments,
-        baselines={},
-        verbose=False,
-        format_for_gitlab=False,
-) -> (str, [], [], []):
+def get_file_owners(file: File, codeowners: CodeOwners) -> list[str]:
+    owners = codeowners.of(file.path)
+    if owners:
+        team = [t[1].replace('@', '') for t in owners]
+    else:
+        team = ['Orphaned files']
+    return team
+
+
+def export_report_data_to_json(files: list[File], codeowners):
+    report_data = {}
+
+    assignments = assign_files_to_teams(files, codeowners)
+
+    for team, files in sorted(assignments.items()):
+
+        # Get the team name only
+        result = re.search(r"infraspeak/.*/(.*)/.*", team)
+        if result:
+            team_name = result.group(1)
+        else:
+            team_name = team
+
+        if team_name.startswith('bs'):
+            team_name = 'Buy&Sell'
+        if team_name.startswith('cp'):
+            team_name = 'Cross Platform'
+        if team_name.startswith('iss'):
+            team_name = 'Integrations'
+        if team_name.startswith('mc'):
+            team_name = 'Maintenance Core'
+        if team_name.startswith('pedro'):
+            team_name = 'Orphaned files'
+
+        existing = report_data.get(team_name, [])
+
+        report_data[team_name] = existing + [f.to_json() for f in files]
+
+    return report_data
+
+
+def build_report_data(files: list[File], codeowners, verbose=False,
+                      format_for_gitlab=False
+                      ) -> (str, [], [], []):
     team_names = []
     percentages = []
 
-    baseline_file_counts = {k: len(v) for k, v in baselines.items()}
-    baseline_files_per_team = {k: [File(path) for path in v] for k, v in
-                               baselines.items()}
-    file_status_list = {}
-
     report_lines = []
 
-    for team, files_to_fix in sorted(assignments.items()):
-        files_to_fix = [File(f) for f in files_to_fix]
-        pending = len(files_to_fix)
+    assignments = assign_files_to_teams(files, codeowners)
 
-        baseline = baseline_file_counts.get(team, 0)
+    for team, files in sorted(assignments.items()):
+        fixed_files_count = len([f for f in files if f.fixed])
+        total_file_count = len(files)
 
-        if baseline == 0:
-            baseline = pending
-
-        baseline_files: list[File] = baseline_files_per_team.get(team, [])
-        baseline_files = sorted(baseline_files, key=lambda f: f.name())
-        files_to_fix_names = [f.name() for f in files_to_fix]
-        baseline_file_names = [f.name() for f in baseline_files]
-        baseline_file_names = sorted(baseline_file_names)
-
-        if baseline_files:
-            file_items = [
-                File(file.path, fixed=file.name() not in files_to_fix_names) for file in
-                baseline_files
-            ]
-        else:
-            file_items = [File(file, fixed=False) for file in
-                          sorted(files_to_fix_names)]
-
-        print(file_items)
-
-        # add all files in files_to_fix NOT in baseline_files aka new files to refactor
-        new_files = [f.path for f in files_to_fix if
-                     f.name() not in baseline_file_names]
-        new_files = list(set(new_files))
-        new_files = [File(f) for f in new_files]
-
-        for new_file in new_files:
-            match = [f for f in file_items if f.name() == new_file.name()]
-            if not match:
-                file_items.append(File(new_file.path, new_file.fixed))
-
-        file_items = sorted(file_items, key=lambda f: f.path)
-
-        # replace each entry in file_items with the matching one on the most recent
-        # changelist
-        file_items = [get_most_recent_file(f, files_to_fix) for f in
-                      file_items]
-
-        fixed_files_count = len([f for f in file_items if f.fixed])
-        total_file_count = len(list(file_items))
-
-        pct_done = round(((fixed_files_count / total_file_count)) * 100, 0)
+        pct_done = round((fixed_files_count / total_file_count) * 100, 2)
         percentages.append(pct_done)
 
         fixed_string = f"fixed {fixed_files_count} of {total_file_count} files"
 
         # Get the team name only
-        result = re.search(r"@infraspeak/.*/(.*)/.*", team)
+        result = re.search(r"infraspeak/.*/(.*)/.*", team)
         if result:
             team_name = result.group(1)
         else:
@@ -101,28 +180,10 @@ def build_report_data(
 
         if verbose:
             percent_done_by_team = f"{pct_done}% DONE ({fixed_string})"
-            report_lines.append(f"{team} {percent_done_by_team}")
+            report_lines.append(f"{team_name} {percent_done_by_team}")
 
-            tab_character = "  "
-
-            # if format_for_gitlab:
-            #     tab_character = '&emsp;'
-
-            for file_item in sorted(file_items):
-                file_path = file_item.path
-                if file_item.fixed:
-                    report_lines.append(f"{tab_character}✅ {file_path}")
-                    file_status_list[file_path] = True
-                else:
-                    report_lines.append(f"{tab_character}❌ {file_path}")
-                    file_status_list[file_path] = False
-        else:
-            for file_item in sorted(file_items):
-                file_path = file_item[0]
-                if file_item[1]:
-                    file_status_list[file_path] = False
-                else:
-                    file_status_list[file_path] = True
+            for file in files:
+                report_lines.append(str(file))
 
     # REPORT TEXT
 
@@ -139,34 +200,42 @@ def build_report_data(
 </details>
 </p>
         """
-    return report_text, file_status_list, team_names, percentages
+    return report_text, files, team_names, percentages
+
+
+"""
+SHITIEST CODE EVER
+"""
 
 
 def display_team_assignments(
-        assignments,
-        baselines={},
+        status_files: list[File],
+        codeowners: CodeOwners,
         verbose=False,
         format_for_gitlab=False,
         copy_to_clipboard=False,
 ):
+    # report_data = export_report_data_to_json(status_files, codeowners)
+    # json.dump(report_data, open('refactors.json', 'w'), sort_keys=True, indent=4)
+    # create_jira_issues(status_files, codeowners)
+
     # PRINT FILES AND STATS
 
     report_data = build_report_data(
-        assignments,
-        baselines,
+        status_files,
+        codeowners,
         verbose,
         format_for_gitlab,
     )
 
     report_text = report_data[0]
-    file_status_list = report_data[1]
     team_names = report_data[2]
     percentages = report_data[3]
 
     # OVERALL STATS
 
-    fixed_files_count = len([f for f in file_status_list.values() if f is True])
-    total_file_count = len(list(file_status_list.items()))
+    fixed_files_count = len([f for f in status_files if f.fixed])
+    total_file_count = len(status_files)
 
     if total_file_count:
         percent_done = (fixed_files_count / total_file_count) * 100
@@ -179,7 +248,7 @@ def display_team_assignments(
 
     if not team_names:
         print("No stats to display")
-        exit(0)
+        return
 
     plt.simple_bar(team_names, percentages, width=75, title=title)
     plt.show()

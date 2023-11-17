@@ -1,10 +1,9 @@
 [tool.poetry]
 name = "refactor-stats-maker"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = ["Tiago Pereira <tiago.pereira@infraspeak.com>"]
 readme = "README.md"
-packages = [{ include = "refactor_stats_maker" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -17,9 +16,16 @@ platformdirs = "^3.11.0"
 halo = "^0.0.31"
 black = "^23.10.1"
 pytest-watch = "^4.2.0"
+jira = "^3.5.2"
+configparser = "^6.0.0"
+more-itertools = "^10.1.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.3"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.7.0"
 
 [build-system]
 requires = ["poetry-core"]

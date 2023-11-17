@@ -38,6 +38,10 @@ def clone_repo() -> Repo:
 
 def move_to_baseline_commit(repo: Repo, commit_hash: str):
     git = repo.git
+    spinner = Halo(text="Fetching commits...", spinner="dots")
+    spinner.start()
+    git.fetch()
+    spinner.stop()
     spinner = Halo(text="Moving to baseline commit", spinner="dots")
     spinner.start()
     git.checkout(commit_hash)
@@ -47,5 +51,4 @@ def move_to_baseline_commit(repo: Repo, commit_hash: str):
 def clone_repo_at_baseline(commit_hash: str) -> str:
     repo = clone_repo()
     move_to_baseline_commit(repo, commit_hash)
-    print("done")
     return str(repo.working_dir)
