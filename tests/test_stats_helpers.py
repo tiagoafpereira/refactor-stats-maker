@@ -106,19 +106,19 @@ def test_orphaned_files_assignment():
 
 def test_file_without_owner():
     codeowners = CodeOwners("^[Domain]\npathA @Team")
-    assert stats_helpers.get_file_owners(File('pathB'),
+    assert stats_helpers.get_file_owners('pathB',
                                          codeowners) == ['Orphaned files']
 
 
 def test_file_with_owner():
     codeowners = CodeOwners("^[Domain]\npath @Team")
-    assert stats_helpers.get_file_owners(File('path'),
+    assert stats_helpers.get_file_owners('path',
                                          codeowners) == ['Team']
 
 
 def test_file_with_owners():
     codeowners = CodeOwners("^[Domain]\npath @TeamA @TeamB")
-    assert stats_helpers.get_file_owners(File('path'),
+    assert stats_helpers.get_file_owners('path',
                                          codeowners) == ['TeamA', 'TeamB']
 
 

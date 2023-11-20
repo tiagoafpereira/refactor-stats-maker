@@ -56,9 +56,6 @@ def get_team_assignments(files: List[str], codeowners: CodeOwners):
 
     for file_to_refactor in files:
         teams = get_file_owners(file_to_refactor, codeowners)
-        teams = [t[1] for t in teams]
-        if not teams:
-            teams = ["Orphaned files"]
         for team in teams:
             assigned_files = team_assignments.get(team, [])
             team_assignments[team] = assigned_files + [file_to_refactor]

@@ -100,7 +100,7 @@ def assign_files_to_teams(files: list[File], codeowners: CodeOwners):
     index = {}
 
     for f in files:
-        teams = get_file_owners(f, codeowners)
+        teams = get_file_owners(f.path, codeowners)
         for team in teams:
             file_list = index.get(team, [])
             file_list.append(f)
@@ -110,12 +110,17 @@ def assign_files_to_teams(files: list[File], codeowners: CodeOwners):
     return index
 
 
-def get_file_owners(file: File, codeowners: CodeOwners) -> list[str]:
-    owners = codeowners.of(file.path)
+def get_file_owners(file_path: str, codeowners: CodeOwners) -> list[str]:
+    owners = codeowners.of(file_path)
     if owners:
         team = [t[1].replace('@', '') for t in owners]
+        # strip src root folder
+        file_path = file_path.replace('src/', '')
+        # replace pedromcosta ownership with the file's root folder
+        team = [t.replace('pedromcosta', file_path.split('/')[0]) for t in team]
     else:
         team = ['Orphaned files']
+
     return team
 
 
