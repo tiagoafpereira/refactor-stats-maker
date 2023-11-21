@@ -1,18 +1,24 @@
-import sys
+from enum import Enum
+from importlib.metadata import version
 from pathlib import Path
 from typing import List
 
+import click
 from codeowners import CodeOwners
 from ripgrepy import Ripgrepy
 
 from refactor_stats_maker.repository_helpers import clone_repo_at_baseline
-from refactor_stats_maker.stats_helpers import build_file_status_list
-from refactor_stats_maker.stats_helpers import display_team_assignments
-from refactor_stats_maker.stats_helpers import get_file_owners
+from refactor_stats_maker.stats_helpers import build_file_status_list, \
+    display_team_assignments, get_file_owners
+
+
+class StatsType(Enum):
+    EXPANDS = "expands"
+    CLASS_BASED = "class-based"
 
 
 def get_files_to_refactor(
-        repo_path: str, regex: str, exclude: List[str] = []
+        repo_path: Path, regex: str, exclude: List[str] = []
 ) -> List[str]:
     src_path = str(Path(f"{repo_path}").expanduser())
     rg = Ripgrepy(regex, src_path)
@@ -63,8 +69,8 @@ def get_team_assignments(files: List[str], codeowners: CodeOwners):
     return team_assignments
 
 
-def get_scan_args(type: str) -> tuple[str, str]:
-    match type:
+def get_scan_args(type: StatsType) -> tuple[str, str]:
+    match type.value:
         case "expands":
             return "a4c5abe006e7b55ecdab72bf6e997118cc6e60e6", "expanded: [',\\[].*"
         case "class-based":
@@ -72,43 +78,48 @@ def get_scan_args(type: str) -> tuple[str, str]:
     raise Exception("Invalid type for commit hash")
 
 
-def run():
-    repo_path = None
-    verbose = False
-    copy_to_clipboard = False
-    format_for_gitlab = False
-    args = []
+@click.command()
+@click.version_option(version=version('refactor_stats_maker'))
+@click.argument('repository-path', nargs=1, type=click.Path(exists=True))
+@click.option('-l', '--list', default=False, is_flag=True, help='Display file list.')
+@click.option('-c', '--copy', default=False, is_flag=True,
+              help='Copy output to clipboard.')
+@click.option('-g', '--gitlab', default=False,
+              is_flag=True,
+              help='Format output in GitLab flavored Markdown.')
+@click.option('-t', '--type', default='expands',
+              type=click.Choice(['expands', 'class-based'], case_sensitive=False),
+              help='Type of statistics to generate.')
+def run(repository_path: Path, list: bool, copy: bool, gitlab: bool, type: str):
+    repo_path = repository_path
+    verbose = list
+    copy_to_clipboard = copy
+    format_for_gitlab = gitlab
 
-    match sys.argv:
-        case [_]:
-            print("Empty repository path")
-            exit(1)
-        case [_, path]:
-            repo_path = path
-        case [_, path, *args]:
-            repo_path = path
-            args = args
-
-    verbose = "-v" in args
-    copy_to_clipboard = "--copy" in args
-    format_for_gitlab = "--gitlab" in args
-    refactor_type = "expands"
-    if "--expands" in args:
-        refactor_type = "expands"
-    if "--class-based" in args:
-        refactor_type = "class-based"
+    stats_type = StatsType.EXPANDS  # default
+    project_name = ""
+    match type:
+        case "expands":
+            stats_type = StatsType.EXPANDS
+            project_name = "Old Expands"
+        case "class-based":
+            project_name = "Class Based to Options API"
+            stats_type = StatsType.CLASS_BASED
 
     # VALIDATE THE REPOSITORY PATH
     if repo_path is None:
         print("Invalid repository path")
         exit(1)
 
+    # LET THE USER KNOW WHAT I'M ABOUT TO DO
+    click.secho(f"Generating statistics for {project_name}", fg='green')
+
     # LOOK FOR FILES TO REFACTOR
 
-    src_path = Path(repo_path + "/src").expanduser()
-    print(src_path)
-    commit_hash = get_scan_args(refactor_type)[0]
-    regex = get_scan_args(refactor_type)[1]
+    src_path = Path(repo_path).joinpath("src")
+
+    commit_hash = get_scan_args(stats_type)[0]
+    regex = get_scan_args(stats_type)[1]
     exclude = ["spec.ts", "stories.ts"]
     # regex =
     current_files = get_files_to_refactor(src_path, regex, exclude=exclude)
@@ -121,6 +132,7 @@ def run():
         baseline_files, current_files)
 
     display_team_assignments(
+        project_name,
         status_files,
         codeowners,
         verbose=verbose,
@@ -131,7 +143,7 @@ def run():
 
 def get_baseline_file_paths(commit_hash, regex, exclude) -> list[str]:
     working_dir = clone_repo_at_baseline(
-        commit_hash) + "/src"
+        commit_hash).joinpath("src")
     files = get_files_to_refactor(working_dir, regex, exclude)
     return files
 

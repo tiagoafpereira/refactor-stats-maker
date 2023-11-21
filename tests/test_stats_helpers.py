@@ -167,7 +167,7 @@ def test_report_data_single_file_fixed():
 def test_empty_team_assignments(capsys):
     status_files = []
     codeowners = CodeOwners("")
-    stats_helpers.display_team_assignments(status_files, codeowners)
+    stats_helpers.display_team_assignments("project name", status_files, codeowners)
     out, err = capsys.readouterr()
     assert out == 'No stats to display\n'
 
@@ -176,13 +176,11 @@ def test_single_file_assignment(capsys):
     status_files = [File('some/path/to/fileA', fixed=True)]
     status_files += [File('some/path/to/fileB', fixed=False)]
     codeowners = CodeOwners("^[Domain]\nsome/path @ATeam")
-    stats_helpers.display_team_assignments(status_files, codeowners)
+    stats_helpers.display_team_assignments("project name", status_files, codeowners)
     out, err = capsys.readouterr()
     assert out == (
-        '\x1b[1m\x1b[38;5;7m──────────────────── OVERALL REFACTORING STATUS 50.00% '
-        '────────────────────\x1b[0m\x1b[0m\n'
+        '\x1b[1m\x1b[38;5;7m──────────── OVERALL REFACTORING STATUS OF PROJECT NAME '
+        '50.00% ────────────\x1b[0m\x1b[0m\n'
         '\x1b[1m\x1b[38;5;7mATeam 1/2\x1b[0m\x1b[0m '
         '\x1b[38;5;12m▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇\x1b[0m '
-        '\x1b[1m\x1b[38;5;7m50.0\x1b[0m\x1b[0m\n'
-        '\n'
-        '\n')
+        '\x1b[1m\x1b[38;5;7m50.0\x1b[0m\x1b[0m\n')

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "refactor-stats-maker"
-version = "0.4.0"
+version = "0.4.1"
 description = ""
 authors = ["Tiago Pereira <tiago.pereira@infraspeak.com>"]
 readme = "README.md"
@@ -19,6 +19,7 @@ pytest-watch = "^4.2.0"
 jira = "^3.5.2"
 configparser = "^6.0.0"
 more-itertools = "^10.1.0"
+click = "^8.1.7"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.3"

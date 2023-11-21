@@ -192,19 +192,23 @@ def build_report_data(files: list[File], codeowners, verbose=False,
 
     # REPORT TEXT
 
-    report_text = "\n".join(report_lines)
+    if report_lines:
+        report_text = "\n".join(report_lines)
 
-    if format_for_gitlab:
-        report_text = f"""
-<p>
-<details>
-<summary>Click for detailed file list</summary>
-<pre>
-{report_text}
-</pre>
-</details>
-</p>
-        """
+        if format_for_gitlab:
+            report_text = f"""
+    <p>
+    <details>
+    <summary>Click for detailed file list</summary>
+    <pre>
+    {report_text}
+    </pre>
+    </details>
+    </p>
+            """
+    else:
+        report_text = ""
+
     return report_text, files, team_names, percentages
 
 
@@ -214,6 +218,7 @@ SHITIEST CODE EVER
 
 
 def display_team_assignments(
+        project_name: str,
         status_files: list[File],
         codeowners: CodeOwners,
         verbose=False,
@@ -247,7 +252,7 @@ def display_team_assignments(
     else:
         percent_done = 0
 
-    title = f"OVERALL REFACTORING STATUS {percent_done:.2f}%"
+    title = f"OVERALL REFACTORING STATUS OF {project_name.upper()} {percent_done:.2f}%"
 
     # BY TEAM STATS
 
@@ -260,9 +265,10 @@ def display_team_assignments(
 
     # PRINT FILE LIST
 
-    print()
+    if report_text:
+        print()
 
-    print(report_text)
+        print(report_text)
 
     if copy_to_clipboard:
         if format_for_gitlab:
