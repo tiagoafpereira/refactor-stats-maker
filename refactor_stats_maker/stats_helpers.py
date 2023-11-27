@@ -170,7 +170,7 @@ def build_report_data(files: list[File], codeowners, verbose=False,
         fixed_files_count = len([f for f in files if f.fixed])
         total_file_count = len(files)
 
-        pct_done = round((fixed_files_count / total_file_count) * 100, 2)
+        pct_done = round((fixed_files_count / total_file_count) * 100, 1)
         percentages.append(pct_done)
 
         fixed_string = f"fixed {fixed_files_count} of {total_file_count} files"
@@ -210,11 +210,6 @@ def build_report_data(files: list[File], codeowners, verbose=False,
         report_text = ""
 
     return report_text, files, team_names, percentages
-
-
-"""
-SHITIEST CODE EVER
-"""
 
 
 def display_team_assignments(

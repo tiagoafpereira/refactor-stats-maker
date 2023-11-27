@@ -5,9 +5,8 @@ from typing import List
 
 import click
 from codeowners import CodeOwners
-from ripgrepy import Ripgrepy
 
-from refactor_stats_maker.repository_helpers import clone_repo_at_baseline
+from refactor_stats_maker.repository_helpers import RepoHandler
 from refactor_stats_maker.stats_helpers import build_file_status_list, \
     display_team_assignments, get_file_owners
 
@@ -15,28 +14,6 @@ from refactor_stats_maker.stats_helpers import build_file_status_list, \
 class StatsType(Enum):
     EXPANDS = "expands"
     CLASS_BASED = "class-based"
-
-
-def get_files_to_refactor(
-        repo_path: Path, regex: str, exclude: List[str] = []
-) -> List[str]:
-    src_path = str(Path(f"{repo_path}").expanduser())
-    rg = Ripgrepy(regex, src_path)
-
-    # SEE https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#manual-filtering
-    # -globs
-    excluded_extensions_glob = ",".join(exclude)
-    excluded_extensions_glob = f"!*.{{{excluded_extensions_glob}}}"
-
-    files_to_refactor = (
-        rg.glob(excluded_extensions_glob).files_with_matches().run().as_string
-    )
-
-    lines = files_to_refactor.split("\n")
-
-    lines = [f.replace(src_path + "/", "src/") for f in lines if f != ""]
-
-    return lines
 
 
 def get_codeowners(repo_path) -> CodeOwners:
@@ -111,19 +88,19 @@ def run(repository_path: Path, list: bool, copy: bool, gitlab: bool, type: str):
         print("Invalid repository path")
         exit(1)
 
+    working_repo_handler = RepoHandler(repo_path)
+
     # LET THE USER KNOW WHAT I'M ABOUT TO DO
     click.secho(f"Generating statistics for {project_name}", fg='green')
 
     # LOOK FOR FILES TO REFACTOR
 
-    src_path = Path(repo_path).joinpath("src")
-
     commit_hash = get_scan_args(stats_type)[0]
     regex = get_scan_args(stats_type)[1]
     exclude = ["spec.ts", "stories.ts"]
     # regex =
-    current_files = get_files_to_refactor(src_path, regex, exclude=exclude)
-    baseline_files = get_baseline_file_paths(
+    current_files = working_repo_handler.get_files_to_refactor(regex, exclude=exclude)
+    baseline_files = working_repo_handler.get_baseline_file_paths(
         commit_hash, regex, exclude=exclude)
     codeowners = get_codeowners(repo_path)
 
@@ -139,13 +116,6 @@ def run(repository_path: Path, list: bool, copy: bool, gitlab: bool, type: str):
         copy_to_clipboard=copy_to_clipboard,
         format_for_gitlab=format_for_gitlab,
     )
-
-
-def get_baseline_file_paths(commit_hash, regex, exclude) -> list[str]:
-    working_dir = clone_repo_at_baseline(
-        commit_hash).joinpath("src")
-    files = get_files_to_refactor(working_dir, regex, exclude)
-    return files
 
 
 if __name__ == "__main__":
