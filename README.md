@@ -233,7 +233,7 @@ the progress made so far.
 Using pipx or pip install the latest `whl` file under `/dist`.
 
 ```bash
-pipx install dist/refactor_stats_maker-0.4.1-py3-none-any.whl
+pipx install dist/refactor_stats_maker-0.4.2-py3-none-any.whl
 ```
 
 The tool should now be globally available on your system.
@@ -275,11 +275,11 @@ poetry build
 ```
 
 ```
-Building refactor-stats-maker (0.4.1)
+Building refactor-stats-maker (0.4.2)
   - Building sdist
-  - Built refactor_stats_maker-0.4.1.tar.gz
+  - Built refactor_stats_maker-0.4.2.tar.gz
   - Building wheel
-  - Built refactor_stats_maker-0.4.1-py3-none-any.whl
+  - Built refactor_stats_maker-0.4.2-py3-none-any.whl
 ```
 
 > Check [Poetry's docs](https://python-poetry.org/docs/) for additional commands and flags

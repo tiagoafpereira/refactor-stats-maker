@@ -1,0 +1,12 @@
+{
+    "ATeam": [
+        {
+            "name": "fileA",
+            "path": "some/path/to/fileA"
+        },
+        {
+            "name": "fileB",
+            "path": "some/path/to/fileB"
+        }
+    ]
+}

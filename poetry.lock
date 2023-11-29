@@ -476,8 +476,8 @@ image = ["pillow (>=8.4)"]
 [package.source]
 type = "git"
 url = "https://github.com/piccolomo/plotext"
-reference = "5.3.0"
-resolved_reference = "cadc4b02872faf4bda167e74afae1cc38c441d67"
+reference = "4238c87"
+resolved_reference = "4238c87f7417980bf7c64ad69b7cba7108f3d4f0"
 
 [[package]]
 name = "pluggy"
@@ -719,4 +719,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "551a4990d532ba80123bfd5269775f4043afda840f019551f3f5881d333d4a81"
+content-hash = "94283e69d569debcff374b8849e64b1f48280b74f3a42c092268701cdc17f8e9"

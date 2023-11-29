@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "refactor-stats-maker"
-version = "0.4.1"
+version = "0.4.2"
 description = ""
 authors = ["Tiago Pereira <tiago.pereira@infraspeak.com>"]
 readme = "README.md"
@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.11"
 codeowners = "^0.6.0"
 ripgrepy = "^2.0.0"
-plotext = { git = "https://github.com/piccolomo/plotext", tag = "5.3.0" }
+plotext = { git = "https://github.com/piccolomo/plotext", rev = "4238c87" }
 pyperclip = "^1.8.2"
 gitpython = "^3.1.40"
 platformdirs = "^3.11.0"
