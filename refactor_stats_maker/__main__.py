@@ -97,7 +97,7 @@ def run(repository_path: Path, list: bool, copy: bool, gitlab: bool, type: str):
 
     commit_hash = get_scan_args(stats_type)[0]
     regex = get_scan_args(stats_type)[1]
-    exclude = ["spec.ts", "stories.ts"]
+    exclude = ["spec.ts", "stories.ts", "md"]
     # regex =
     current_files = working_repo_handler.get_files_to_refactor(regex, exclude=exclude)
     baseline_files = working_repo_handler.get_baseline_file_paths(
