@@ -90,13 +90,13 @@ class RepoHandler:
         return commits
 
     def get_baseline_file_paths(self, commit_hash, regex, exclude) -> list[str]:
-        working_dir = Path(self.cache_repo.working_dir).joinpath("src")
+        working_dir = Path(self.cache_repo.working_dir)
         self.move_to_baseline_commit(commit_hash)
         files = self.get_files_to_refactor_in_folder(working_dir, regex, exclude)
         return files
 
-    def get_files_to_refactor_in_folder(self,
-                                        repo_path: Path, regex: str,
+    @staticmethod
+    def get_files_to_refactor_in_folder(repo_path: Path, regex: str,
                                         exclude: list[str] = []
                                         ) -> list[str]:
         src_path = str(Path(f"{repo_path}").expanduser())
@@ -114,7 +114,7 @@ class RepoHandler:
 
         lines = files_to_refactor.split("\n")
 
-        lines = [f.replace(src_path + "/", "src/") for f in lines if f != ""]
+        lines = [f.replace(src_path + "/src/", "src/") for f in lines if f != ""]
 
         return lines
 
