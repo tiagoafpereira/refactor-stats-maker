@@ -1,10 +1,14 @@
-import time
+import hashlib
 from pathlib import Path
 
 import platformdirs
 from git import InvalidGitRepositoryError, Repo, Commit
 from halo import Halo
 from ripgrepy import Ripgrepy
+
+
+def hash_root_repo_path(path: str) -> str:
+    return hashlib.md5(str.encode(path)).hexdigest()
 
 
 class RepoHandler:
@@ -21,7 +25,9 @@ class RepoHandler:
         # create a clone of the repository in cache
         cache_repo_root_str: str = platformdirs.user_cache_dir("refactor_stats_maker",
                                                                "Tiago Pereira")
-        self.cache_repo_root = Path(cache_repo_root_str).joinpath("wcc")
+        self.cache_repo_root = Path(cache_repo_root_str).joinpath(
+            hash_root_repo_path(self.root_repo.git_dir.__str__()))
+
         self.cache_repo = self.clone_cache_repo()
 
     def create_cache_repo_root_folder(self):
@@ -40,53 +46,36 @@ class RepoHandler:
         try:
             repo = Repo(self.cache_repo_root)
         except InvalidGitRepositoryError:
-            spinner = Halo(text="Cloning the repository", spinner="dots")
+            remote = self.get_repo_remote_origin()
+            spinner = Halo(text="Cloning the repository into cache", spinner="dots")
             spinner.start()
-            repo = Repo.clone_from(self.get_repo_remote_origin(),
-                                   str(self.cache_repo_root))
+            repo = Repo.clone_from(remote, str(self.cache_repo_root))
             spinner.stop()
-
         return repo
 
-    def move_to_baseline_commit(self, commit_hash: str, fetch=True):
+    def move_to_baseline_commit(self, commit_hash: str, pull=True):
         git = self.cache_repo.git
-        if fetch:
+        if pull:
             spinner = Halo(text="Fetching commits...", spinner="dots")
             spinner.start()
+            git.reset('--hard')
+            git.checkout(self.root_repo.active_branch.name)
             git.fetch()
+            git.pull()
             spinner.stop()
         spinner = Halo(text="Moving to baseline commit", spinner="dots")
         spinner.start()
         git.checkout(commit_hash)
         spinner.stop()
 
-    def get_commits_since_hash(self, repo: Repo, commit_hash: str) -> list[Commit]:
+    def get_commits_since_hash(self, commit_hash: str) -> list[Commit]:
         commits: list[Commit] = []
-        day = 0
-        for commit in list(repo.iter_commits("develop")):
+        for commit in list(self.cache_repo.iter_commits()):
+            # maybe there's a better way to determine if a commit is a merge commit
+            if not commit.summary.startswith('Merge'):
+                commits.append(commit)
             if commit.hexsha == commit_hash:
-                print('DONE!')
-                break
-            current_day = time.gmtime(commit.committed_date).tm_mday
-            if not day:
-                day = current_day
-                print('first day', day)
-
-            if day == current_day:
-                continue
-            else:
-                day = current_day
-                print('update day', day)
-
-            summary = str(commit.summary)
-            # print(summary)
-            # if summary.startswith('Merge branch'):
-            #     continue
-
-            date = time.strftime("%a, %d %b %Y %H:%M",
-                                 time.gmtime(commit.committed_date))
-            print(f'{commit.hexsha} {date} {commit.summary}')
-            commits.insert(len(commits), commit)
+                return commits
         return commits
 
     def get_baseline_file_paths(self, commit_hash, regex, exclude) -> list[str]:
