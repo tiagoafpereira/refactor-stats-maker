@@ -5,7 +5,6 @@ from enum import Enum
 from importlib.metadata import version
 from itertools import chain
 from pathlib import Path
-from typing import List
 
 import click
 from codeowners import CodeOwners
@@ -41,7 +40,7 @@ def get_codeowners(repo_path) -> CodeOwners:
         exit(1)
 
 
-def get_team_assignments(files: List[str], codeowners: CodeOwners):
+def get_team_assignments(files: list[str], codeowners: CodeOwners):
     # ASSIGN EACH FILE TO A TEAM
 
     team_assignments = {}
@@ -182,7 +181,8 @@ def display_leaderboard(authors: dict[Actor, int]):
 @click.command()
 @click.version_option(version=version('refactor_stats_maker'))
 @click.argument('repository-path', nargs=1, type=click.Path(exists=True))
-@click.option('-l', '--list', default=False, is_flag=True, help='Display file list.')
+@click.option('-l', '--file-list', default=False, is_flag=True,
+              help='Display file list.')
 @click.option('-c', '--copy', default=False, is_flag=True,
               help='Copy output to clipboard.')
 @click.option('-g', '--gitlab', default=False,
@@ -198,14 +198,14 @@ def display_leaderboard(authors: dict[Actor, int]):
               type=click.Choice(['expands', 'class-based'], case_sensitive=False),
               help='Type of statistics to generate.')
 def run(repository_path: Path,
-        list: bool,
+        file_list: bool,
         copy: bool,
         gitlab: bool,
         leaderboard: bool,
         list_commits: bool,
         type: str):
     repo_path = repository_path
-    verbose = list
+    verbose = file_list
     copy_to_clipboard = copy
     format_for_gitlab = gitlab
 
