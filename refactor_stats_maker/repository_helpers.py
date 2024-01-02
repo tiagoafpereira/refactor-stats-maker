@@ -18,15 +18,16 @@ class RepoHandler:
     cache_repo: Repo
 
     def __init__(self, root: Path):
-
         self.root_repo_path = root
         self.root_repo = Repo(self.root_repo_path)
 
         # create a clone of the repository in cache
-        cache_repo_root_str: str = platformdirs.user_cache_dir("refactor_stats_maker",
-                                                               "Tiago Pereira")
+        cache_repo_root_str: str = platformdirs.user_cache_dir(
+            "refactor_stats_maker", "Tiago Pereira"
+        )
         self.cache_repo_root = Path(cache_repo_root_str).joinpath(
-            hash_root_repo_path(self.root_repo.git_dir.__str__()))
+            hash_root_repo_path(self.root_repo.git_dir.__str__())
+        )
 
         self.cache_repo = self.clone_cache_repo()
 
@@ -58,7 +59,7 @@ class RepoHandler:
         if pull:
             spinner = Halo(text="Fetching commits...", spinner="dots")
             spinner.start()
-            git.reset('--hard')
+            git.reset("--hard")
             git.checkout(self.root_repo.active_branch.name)
             git.fetch()
             git.pull()
@@ -72,7 +73,7 @@ class RepoHandler:
         commits: list[Commit] = []
         for commit in list(self.cache_repo.iter_commits()):
             # maybe there's a better way to determine if a commit is a merge commit
-            if not commit.summary.startswith('Merge'):
+            if not commit.summary.startswith("Merge"):
                 commits.append(commit)
             if commit.hexsha == commit_hash:
                 return commits
@@ -85,9 +86,9 @@ class RepoHandler:
         return files
 
     @staticmethod
-    def get_files_to_refactor_in_folder(repo_path: Path, regex: str,
-                                        exclude: list[str] = []
-                                        ) -> list[str]:
+    def get_files_to_refactor_in_folder(
+        repo_path: Path, regex: str, exclude: list[str] = []
+    ) -> list[str]:
         src_path = str(Path(f"{repo_path}").expanduser())
         rg = Ripgrepy(regex, src_path)
 
@@ -111,5 +112,5 @@ class RepoHandler:
         if not exclude:
             exclude = []
         if not self.root_repo_path:
-            raise Exception('Invalid repository root')
+            raise Exception("Invalid repository root")
         return self.get_files_to_refactor_in_folder(self.root_repo_path, regex, exclude)

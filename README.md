@@ -24,7 +24,7 @@ first written.
 
 This list is matched against a search performed on the same repository at the present time.
 
-The search pattern is also harcoded: `expanded: [',\\[].*`. This will remain untouched for the time being.
+The search pattern is also hardcoded: `expanded: [',\\[].*`. This will remain untouched for the time being.
 
 The difference is computed so we can tell which files have already been refactored so we mark those as completed and the
 other ones as to be done.
@@ -94,12 +94,12 @@ That's where this tool comes in handy.
 * For each item it prints out it's status and src/ path
 * A nice little ASCII bar chart at the end
 
-> You can display the bar chart by itself by omitting the `--list` option
+> You can display the bar chart by itself by omitting the `--file-list` option
 
 Let's see it in action:
 
 ```bash
-refactor-stats-maker [YOUR_TARGET_REPOSITORY_DIR] --type expands --list
+refactor-stats-maker [YOUR_TARGET_REPOSITORY_DIR] --type expands --file-list
 ```
 
 ```
@@ -242,16 +242,20 @@ To check all available options use the `--help` flag:
 
 ```commandline
 $ poetry run python -m refactor-stats-maker --help
-Usage: python -m refactor-stats-maker [OPTIONS] REPOSITORY_PATH
+Usage: python -m refactor_stats_maker [OPTIONS] REPOSITORY_PATH
 
 Options:
   --version                       Show the version and exit.
-  -l, --list                      Display file list.
+  -l, --file-list                 Display file list.
   -c, --copy                      Copy output to clipboard.
   -g, --gitlab                    Format output in GitLab flavored Markdown.
+  --leaderboard                   Display leaderboard
+  --list-commits                  Display commit list
+  --stats                         Display statistics.
   -t, --type [expands|class-based]
                                   Type of statistics to generate.
   --help                          Show this message and exit.
+
 ```
 
 ## Development environment

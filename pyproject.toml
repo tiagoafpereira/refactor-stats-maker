@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "refactor-stats-maker"
-version = "0.5.0"
+version = "0.6.0"
 description = ""
 authors = ["Tiago Pereira <tiago.pereira@infraspeak.com>"]
 readme = "README.md"
@@ -12,9 +12,8 @@ ripgrepy = "^2.0.0"
 plotext = { git = "https://github.com/piccolomo/plotext", rev = "4238c87" }
 pyperclip = "^1.8.2"
 gitpython = "^3.1.40"
-platformdirs = "^3.11.0"
+platformdirs = "^4.1.0"
 halo = "^0.0.31"
-black = "^23.10.1"
 pytest-watch = "^4.2.0"
 jira = "^3.5.2"
 configparser = "^6.0.0"
@@ -22,6 +21,9 @@ more-itertools = "^10.1.0"
 click = "^8.1.7"
 rich = "^13.7.0"
 time-machine = "^2.13.0"
+numpy = "^1.26.2"
+holidays = "^0.40"
+humanize = "^4.9.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.3"
@@ -29,6 +31,7 @@ pytest = "^7.4.3"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.7.0"
+ruff = "^0.1.9"
 
 [build-system]
 requires = ["poetry-core"]
